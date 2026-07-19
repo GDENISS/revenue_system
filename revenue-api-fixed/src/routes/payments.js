@@ -356,13 +356,29 @@ export default async function paymentRoutes(fastify) {
         type: 'object',
         required: ['noticeId'],
         properties: {
-          noticeId: { type: 'integer' },
-          email:    { type: 'string', format: 'email' },
+          noticeId:    { type: 'integer' },
+          email:       { type: 'string', format: 'email' },
+          callbackUrl: { type: 'string' },
         },
       },
     },
   }, async (request, reply) => {
     const { noticeId, email } = request.body
+
+    // Optional per-request return URL so the frontend can bring the payer
+    // back to the exact page they started from. Only same-origin with the
+    // configured PAYSTACK_CALLBACK_URL is honoured — anything else falls
+    // back to the env default rather than becoming an open redirect.
+    let callbackUrl
+    if (request.body.callbackUrl && process.env.PAYSTACK_CALLBACK_URL) {
+      try {
+        const requested = new URL(request.body.callbackUrl)
+        const allowed   = new URL(process.env.PAYSTACK_CALLBACK_URL)
+        if (requested.origin === allowed.origin) callbackUrl = requested.toString()
+      } catch {
+        /* malformed URL → use env default */
+      }
+    }
 
     const [notice] = await sql`
       SELECT
@@ -396,6 +412,7 @@ export default async function paymentRoutes(fastify) {
         email: payerEmail,
         amount: Number(notice.amountDue),
         reference,
+        callbackUrl,
         metadata: {
           noticeId: notice.noticeId,
           noticeNumber: notice.noticeNumber,

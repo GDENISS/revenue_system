@@ -45,6 +45,10 @@ function RecordDetail({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paystackResult, setPaystackResult] = useState<{
+    kind: "ok" | "err";
+    message: string;
+  } | null>(null);
 
   const reload = () => {
     if (!recordId) return;
@@ -71,6 +75,54 @@ function RecordDetail({
     reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recordId]);
+
+  // Paystack sends the payer back here with ?paystack_callback=1&reference=…
+  // (the payment modal set this record's URL as the checkout callback).
+  // Verify is idempotent — the webhook may have already recorded the payment.
+  // Scrub the params afterwards so a refresh doesn't re-trigger the call.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const reference = params.get("reference") || params.get("trxref");
+    if (!params.has("paystack_callback") || !reference) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await api.payments.paystackVerify(reference);
+        if (cancelled) return;
+        if (res.status === "recorded" || res.status === "already_recorded") {
+          setPaystackResult({ kind: "ok", message: "Payment confirmed and recorded." });
+          reload();
+        } else if (res.status === "pending" || res.status === "unknown") {
+          setPaystackResult({
+            kind: "err",
+            message: "Payment is still being processed. Check back in a moment.",
+          });
+        } else {
+          setPaystackResult({
+            kind: "err",
+            message: res.message || `Payment was not completed (${res.status}).`,
+          });
+        }
+      } catch (err) {
+        if (cancelled) return;
+        setPaystackResult({
+          kind: "err",
+          message: err instanceof Error ? err.message : "Could not verify the payment",
+        });
+      } finally {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("reference");
+        url.searchParams.delete("trxref");
+        url.searchParams.delete("paystack_callback");
+        window.history.replaceState({}, "", url.toString());
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!recordId) {
     return (
@@ -129,7 +181,24 @@ function RecordDetail({
   const outstanding = Number(record.outstandingBalance) || 0;
 
   return (
-    <section className="grid gap-3 lg:grid-cols-[240px_1fr]">
+    <>
+      {paystackResult && (
+        <calcite-notice
+          open
+          icon={paystackResult.kind === "ok" ? "check-circle" : "exclamation-mark-triangle"}
+          kind={paystackResult.kind === "ok" ? "success" : "danger"}
+          scale="s"
+          closable
+          onCalciteNoticeClose={() => setPaystackResult(null)}
+          class="mb-3"
+        >
+          <div slot="title">
+            {paystackResult.kind === "ok" ? "Paystack payment" : "Paystack payment issue"}
+          </div>
+          <div slot="message">{paystackResult.message}</div>
+        </calcite-notice>
+      )}
+      <section className="grid gap-3 lg:grid-cols-[240px_1fr]">
       <calcite-card class="dash-card section-card record-aside">
         <button
           type="button"
@@ -320,7 +389,7 @@ function RecordDetail({
 
         {tab === "fees" && <FeeAssignments fees={record.fees} />}
         {tab === "ledger" && <PaymentLedger payments={record.payments} />}
-        {tab === "notices" && <NoticesForRecord notices={record.notices} />}
+        {tab === "notices" && <NoticesForRecord record={record} onChanged={reload} />}
       </div>
 
       {showPaymentModal && (
@@ -334,6 +403,7 @@ function RecordDetail({
         />
       )}
     </section>
+    </>
   );
 }
 
@@ -417,12 +487,96 @@ function PaymentLedger({ payments }: { payments: RecordDetailPayload["payments"]
   );
 }
 
-function NoticesForRecord({ notices }: { notices: RecordDetailPayload["notices"] }) {
+function NoticesForRecord({
+  record,
+  onChanged,
+}: {
+  record: RecordDetailPayload;
+  onChanged: () => void;
+}) {
+  const notices = record.notices;
+  const outstanding = Number(record.outstandingBalance) || 0;
+  const hasOpenNotice = notices.some(
+    (n) => n.noticeStatus === "issued" || n.noticeStatus === "overdue",
+  );
+  const [issuing, setIssuing] = useState(false);
+  const [issueResult, setIssueResult] = useState<{
+    kind: "ok" | "err";
+    message: string;
+  } | null>(null);
+
+  // Bill the record's full current outstanding balance, due in 30 days. The
+  // backend refuses when nothing is outstanding, with a message that explains
+  // whether fees are missing or already settled.
+  const issueNotice = async () => {
+    setIssuing(true);
+    setIssueResult(null);
+    try {
+      const due = new Date();
+      due.setDate(due.getDate() + 30);
+      const res = await api.notices.generate({
+        recordId: record.recordId,
+        dueDate: due.toISOString().slice(0, 10),
+      });
+      setIssueResult({
+        kind: "ok",
+        message: `${res.noticeNumber} issued for KES ${Number(res.amountDue).toLocaleString()}. The PDF will be ready shortly.`,
+      });
+      onChanged();
+    } catch (err) {
+      setIssueResult({
+        kind: "err",
+        message: err instanceof Error ? err.message : "Could not generate the notice",
+      });
+    } finally {
+      setIssuing(false);
+    }
+  };
+
   return (
     <calcite-card class="dash-card section-card zone-card">
-      <h3 className="panel-title mb-3">Notices</h3>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h3 className="panel-title !mb-0">Notices</h3>
+        {outstanding > 0 && (
+          <button
+            type="button"
+            className="primary-control !h-8 !text-[11.5px]"
+            onClick={issueNotice}
+            disabled={issuing}
+            title={`Issue a demand notice for the outstanding KES ${outstanding.toLocaleString()}`}
+          >
+            {issuing ? "Issuing…" : "Issue demand notice"}
+          </button>
+        )}
+      </div>
+      {outstanding > 0 && hasOpenNotice && (
+        <p className="mb-2 text-[11.5px] text-[var(--muted)]">
+          This record already has an open notice. Issuing another bills the
+          current outstanding balance of KES {outstanding.toLocaleString()}.
+        </p>
+      )}
+      {issueResult && (
+        <calcite-notice
+          open
+          icon={issueResult.kind === "ok" ? "check-circle" : "exclamation-mark-triangle"}
+          kind={issueResult.kind === "ok" ? "success" : "danger"}
+          scale="s"
+          closable
+          onCalciteNoticeClose={() => setIssueResult(null)}
+          class="mb-3"
+        >
+          <div slot="title">
+            {issueResult.kind === "ok" ? "Notice issued" : "Could not issue notice"}
+          </div>
+          <div slot="message">{issueResult.message}</div>
+        </calcite-notice>
+      )}
       {notices.length === 0 ? (
-        <p className="text-[12.5px] text-[var(--muted)]">No demand notices for this record yet.</p>
+        <p className="text-[12.5px] text-[var(--muted)]">
+          No demand notices for this record yet.
+          {outstanding > 0 &&
+            " There is an outstanding balance — issue one with the button above."}
+        </p>
       ) : (
         <table className="w-full text-left text-[12.5px]">
           <thead className="label border-b border-[var(--line)]">
@@ -492,18 +646,42 @@ function RecordPaymentModal({
   onClose: () => void;
   onRecorded: () => void;
 }) {
+  // Notices Paystack can charge against — the backend initializes checkout
+  // per notice and always charges that notice's full amount_due.
+  const openNotices = record.notices.filter(
+    (n) => n.noticeStatus !== "paid" && n.noticeStatus !== "cancelled" && Number(n.amountDue) > 0,
+  );
+
   const [amount, setAmount] = useState<string>(String(Number(record.outstandingBalance) || 0));
-  const [method, setMethod] = useState<"mpesa" | "bank" | "cash" | "cheque">("mpesa");
+  const [method, setMethod] = useState<"mpesa" | "bank" | "cash" | "cheque" | "paystack">("mpesa");
+  const [noticeId, setNoticeId] = useState<number | null>(openNotices[0]?.noticeId ?? null);
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const selectedNotice = openNotices.find((n) => n.noticeId === noticeId) ?? null;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
     try {
+      if (method === "paystack") {
+        if (!selectedNotice) throw new Error("No open demand notice to pay against");
+        // Return the payer to this record after checkout (Shell restores
+        // ?view=record&record=… on load).
+        const returnUrl = new URL(window.location.origin);
+        returnUrl.searchParams.set("view", "record");
+        returnUrl.searchParams.set("record", String(record.recordId));
+        returnUrl.searchParams.set("paystack_callback", "1");
+        const { authorizationUrl } = await api.payments.paystackInitialize({
+          noticeId: selectedNotice.noticeId,
+          callbackUrl: returnUrl.toString(),
+        });
+        window.location.assign(authorizationUrl);
+        return; // keep "Opening…" state until the redirect happens
+      }
       const payload: Parameters<typeof api.payments.record>[0] = {
         recordId: record.recordId,
         amountPaid: Number(amount),
@@ -511,6 +689,9 @@ function RecordPaymentModal({
         paymentDate: new Date().toISOString(),
         notes: notes || undefined,
       };
+      // Tag the payment to the chosen notice so the backend can mark it paid
+      // the moment its balance is covered (record-level settle still runs too).
+      if (noticeId) payload.noticeId = noticeId;
       if (method === "mpesa" && reference) payload.mpesaRef = reference;
       if (method === "bank" && reference) payload.bankRef = reference;
       await api.payments.record(payload);
@@ -535,33 +716,103 @@ function RecordPaymentModal({
         </div>
         <form onSubmit={submit} className="space-y-3">
           <label className="block">
-            <span className="auth-label">Amount (KES)</span>
-            <input
-              type="number"
-              min="0.01"
-              step="0.01"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              required
-              className="auth-input"
-            />
-          </label>
-          <label className="block">
             <span className="auth-label">Method</span>
             <div className="auth-input-shell">
               <select
                 value={method}
-                onChange={(e) => setMethod(e.target.value as typeof method)}
+                onChange={(e) => {
+                  const m = e.target.value as typeof method;
+                  setMethod(m);
+                  // Paystack always charges a specific notice — restore a
+                  // selection if "whole record" was chosen for a manual method.
+                  if (m === "paystack" && noticeId == null) {
+                    setNoticeId(openNotices[0]?.noticeId ?? null);
+                  }
+                }}
                 className="auth-input auth-input--bare"
               >
                 <option value="mpesa">M-Pesa</option>
                 <option value="bank">Bank transfer</option>
                 <option value="cash">Cash</option>
                 <option value="cheque">Cheque</option>
+                <option value="paystack">Pay online (Paystack)</option>
               </select>
               <ChevronDown className="mr-3 h-3.5 w-3.5 text-[var(--muted)]" strokeWidth={2.4} />
             </div>
           </label>
+          {method !== "paystack" && openNotices.length > 0 && (
+            <label className="block">
+              <span className="auth-label">Apply to</span>
+              <div className="auth-input-shell">
+                <select
+                  value={noticeId ?? ""}
+                  onChange={(e) => {
+                    const id = e.target.value ? Number(e.target.value) : null;
+                    setNoticeId(id);
+                    // Picking a notice prefills its balance; still editable
+                    // for partial payments.
+                    const n = openNotices.find((o) => o.noticeId === id);
+                    if (n) setAmount(String(Number(n.amountDue)));
+                  }}
+                  className="auth-input auth-input--bare"
+                >
+                  <option value="">Whole record balance (no specific notice)</option>
+                  {openNotices.map((n) => (
+                    <option key={n.noticeId} value={n.noticeId}>
+                      Notice {n.noticeNumber} — KES {Number(n.amountDue).toLocaleString()}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="mr-3 h-3.5 w-3.5 text-[var(--muted)]" strokeWidth={2.4} />
+              </div>
+            </label>
+          )}
+          {method !== "paystack" && (
+            <label className="block">
+              <span className="auth-label">Amount (KES)</span>
+              <input
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                required
+                className="auth-input"
+              />
+            </label>
+          )}
+          {method === "paystack" &&
+            (openNotices.length === 0 ? (
+              <calcite-notice open icon="information" kind="brand" scale="s">
+                <div slot="title">No open demand notice</div>
+                <div slot="message">
+                  Online payment charges a demand notice. Generate a notice for this record
+                  first, then pay it here or from the Notices view.
+                </div>
+              </calcite-notice>
+            ) : (
+              <label className="block">
+                <span className="auth-label">Demand notice to pay</span>
+                <div className="auth-input-shell">
+                  <select
+                    value={noticeId ?? ""}
+                    onChange={(e) => setNoticeId(Number(e.target.value))}
+                    className="auth-input auth-input--bare"
+                  >
+                    {openNotices.map((n) => (
+                      <option key={n.noticeId} value={n.noticeId}>
+                        {n.noticeNumber} — KES {Number(n.amountDue).toLocaleString()}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="mr-3 h-3.5 w-3.5 text-[var(--muted)]" strokeWidth={2.4} />
+                </div>
+                <span className="mt-1 block text-[11.5px] text-[var(--muted)]">
+                  Paystack charges the notice&apos;s full outstanding amount. The taxpayer
+                  completes checkout via M-Pesa, card, or bank.
+                </span>
+              </label>
+            ))}
           {(method === "mpesa" || method === "bank") && (
             <label className="block">
               <span className="auth-label">
@@ -576,15 +827,17 @@ function RecordPaymentModal({
               />
             </label>
           )}
-          <label className="block">
-            <span className="auth-label">Notes (optional)</span>
-            <input
-              type="text"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="auth-input"
-            />
-          </label>
+          {method !== "paystack" && (
+            <label className="block">
+              <span className="auth-label">Notes (optional)</span>
+              <input
+                type="text"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="auth-input"
+              />
+            </label>
+          )}
           {error && (
             <calcite-notice open icon="exclamation-mark-triangle" kind="danger" scale="s">
               <div slot="title">Could not record</div>
@@ -595,8 +848,18 @@ function RecordPaymentModal({
             <button type="button" className="control" onClick={onClose} disabled={submitting}>
               Cancel
             </button>
-            <button type="submit" className="primary-control" disabled={submitting}>
-              {submitting ? "Saving…" : "Record payment"}
+            <button
+              type="submit"
+              className="primary-control"
+              disabled={submitting || (method === "paystack" && !selectedNotice)}
+            >
+              {method === "paystack"
+                ? submitting
+                  ? "Opening…"
+                  : "Continue to Paystack"
+                : submitting
+                  ? "Saving…"
+                  : "Record payment"}
             </button>
           </div>
         </form>

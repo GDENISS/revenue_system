@@ -82,6 +82,21 @@ function allowedViews(role: BackendUser["role"]): View[] {
   return (Object.keys(VIEW_ROLES) as View[]).filter((v) => VIEW_ROLES[v].includes(role));
 }
 
+/** Navigation state carried in the URL (?view=…&record=…). Set by the
+ * Paystack callback flow so a full-page round trip through the hosted
+ * checkout drops the user back on the exact page they paid from. The
+ * role-bounce effect still corrects views the user's role can't open. */
+function navFromUrl(): { view: View | null; recordId: number | null } {
+  if (typeof window === "undefined") return { view: null, recordId: null };
+  const params = new URLSearchParams(window.location.search);
+  const view = params.get("view");
+  const record = Number(params.get("record"));
+  return {
+    view: view && view in VIEW_ROLES ? (view as View) : null,
+    recordId: Number.isInteger(record) && record > 0 ? record : null,
+  };
+}
+
 function defaultViewFor(role: BackendUser["role"]): View {
   // Sensible landing page per role
   if (role === "officer") return "officer";
@@ -93,9 +108,11 @@ function defaultViewFor(role: BackendUser["role"]): View {
 
 function Shell() {
   const [user, setUser] = useState<BackendUser | null>(null);
-  const [view, setView] = useState<View>("finance");
+  const [view, setView] = useState<View>(() => navFromUrl().view ?? "finance");
   const [theme, setTheme] = useState<Theme>("light");
-  const [selectedRecordId, setSelectedRecordId] = useState<number | null>(null);
+  const [selectedRecordId, setSelectedRecordId] = useState<number | null>(
+    () => navFromUrl().recordId,
+  );
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("profile");
   // "Link this taxpayer to a parcel" mode — set from Records/RecordDetail,
   // consumed by MapWorkspace which switches feature-clicks to PATCH the link.

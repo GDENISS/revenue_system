@@ -54,8 +54,13 @@ function BulkNotices({ onOpenRecord }: { onOpenRecord: (id: number) => void }) {
     setPayingFor(notice.noticeId);
     setResult(null);
     try {
+      // Return the payer to this view after checkout (Shell restores ?view=).
+      const returnUrl = new URL(window.location.origin);
+      returnUrl.searchParams.set("view", "bulk");
+      returnUrl.searchParams.set("paystack_callback", "1");
       const { authorizationUrl } = await api.payments.paystackInitialize({
         noticeId: notice.noticeId,
+        callbackUrl: returnUrl.toString(),
       });
       window.location.assign(authorizationUrl);
     } catch (err) {

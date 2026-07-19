@@ -688,7 +688,7 @@ export const api = {
       request<Paged<Payment>>(`/api/payments${buildQuery(params)}`),
     summary: (params?: { dateFrom?: string; dateTo?: string; zoneId?: number }) =>
       request<PaymentsSummary>(`/api/payments/summary${buildQuery(params)}`),
-    paystackInitialize: (body: { noticeId: number; email?: string }) =>
+    paystackInitialize: (body: { noticeId: number; email?: string; callbackUrl?: string }) =>
       request<{ authorizationUrl: string; reference: string }>(
         "/api/payments/paystack/initialize",
         { method: "POST", body: JSON.stringify(body) },
