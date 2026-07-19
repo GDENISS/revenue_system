@@ -332,7 +332,10 @@ WITH notice_gen AS (
 )
 INSERT INTO demand_notice (record_id, assignment_id, notice_number, amount_due, issued_date, due_date, notice_status, generated_by)
 SELECT record_id, assignment_id, notice_number, amount_due, issued_date, due_date, 'issued', user_id
-FROM notice_gen;
+FROM notice_gen
+-- ROW_NUMBER() restarts at 1 each run, so re-running against a database that
+-- already has NBO-… notices would collide — skip those rows silently.
+ON CONFLICT (notice_number) DO NOTHING;
 
 -- ──────────────────────────────────────────────────────────────────────────
 -- 8. PAYMENTS (Record payments for some notices)
@@ -363,7 +366,8 @@ SELECT
   receipt_number,
   user_id,
   'Payment recorded via M-Pesa'
-FROM payment_records;
+FROM payment_records
+ON CONFLICT DO NOTHING;
 
 -- ──────────────────────────────────────────────────────────────────────────
 -- 9. RECORD ATTRIBUTES (Add flexible attributes to selected records)
