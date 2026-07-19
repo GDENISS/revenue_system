@@ -1,0 +1,912 @@
+@import "tailwindcss";
+
+/* ============================================================
+   GeoRevenue Spatial OS — Design Tokens
+   Compact, clean, Calcite-aligned colour system
+   ============================================================ */
+
+:root {
+  /* Font stack mirrors Calcite Design System. "Avenir Next World" is loaded
+     by calcite.css; the rest are platform fallbacks if the CDN font 404s. */
+  --font-sans: "Avenir Next World", "Avenir Next", "Avenir", "Helvetica Neue",
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* Legacy alias kept so any older selectors keep resolving. */
+  --font-jakarta: var(--font-sans);
+
+  /* Brand — Esri / Calcite "h1" blue ramp */
+  --color-primary: #007ac2;
+  --color-primary-light: #00a0ff;
+  --color-primary-dark: #00619b;
+  --color-primary-50: #e2f1ff;
+  --color-primary-100: #bfe0ff;
+
+  /* Neutrals — Calcite gray ramp (Blk family) */
+  --color-neutral-0: #ffffff;
+  --color-neutral-50: #f8f8f8;
+  --color-neutral-100: #f3f3f3;
+  --color-neutral-200: #eaeaea;
+  --color-neutral-300: #d4d4d4;
+  --color-neutral-400: #b1b1b1;
+  --color-neutral-500: #757575;
+  --color-neutral-600: #555555;
+  --color-neutral-700: #404040;
+  --color-neutral-800: #2b2b2b;
+  --color-neutral-900: #151515;
+
+  /* Status — Calcite status palette */
+  --color-success: #35ac46;
+  --color-warning: #edd317;
+  --color-error: #d83020;
+  --color-info: #00619b;
+
+  /* Semantic tokens */
+  --background: var(--color-neutral-50);
+  --surface: var(--color-neutral-0);
+  --surface-secondary: var(--color-neutral-100);
+  --on-surface: var(--color-neutral-900);
+  --on-surface-secondary: var(--color-neutral-600);
+  --muted: var(--color-neutral-500);
+  --line: var(--color-neutral-200);
+  --outline-variant: var(--color-neutral-300);
+  --primary: var(--color-primary);
+  --primary-container: var(--color-primary-50);
+  --secondary: var(--color-neutral-700);
+  --tertiary: var(--color-info);
+  --error: var(--color-error);
+  --success: var(--color-success);
+  --warning: var(--color-warning);
+
+  /* Component */
+  --panel: var(--color-neutral-0);
+  --panel-hover: var(--color-neutral-50);
+  --soft-fill: var(--color-neutral-50);
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgb(15 23 42 / 0.04);
+  --shadow-sm: 0 1px 2px rgb(15 23 42 / 0.05), 0 1px 3px rgb(15 23 42 / 0.05);
+  --shadow-md: 0 4px 8px rgb(15 23 42 / 0.06), 0 2px 4px rgb(15 23 42 / 0.04);
+  --shadow-lg: 0 12px 24px rgb(15 23 42 / 0.08), 0 4px 8px rgb(15 23 42 / 0.04);
+
+  /* Radii */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* Spacing — 4px grid */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+
+  /* Type */
+  --font-size-xs: 11px;
+  --font-size-sm: 12.5px;
+  --font-size-base: 13px;
+  --font-size-lg: 15px;
+  --font-size-xl: 17px;
+  --font-size-2xl: 20px;
+
+  /* Motion */
+  --transition-fast: 140ms ease;
+  --transition-base: 200ms ease;
+}
+
+[data-theme="dark"] {
+  /* Calcite dark surfaces */
+  --background: #151515;
+  --surface: #2b2b2b;
+  --surface-secondary: #353535;
+  --panel: #2b2b2b;
+  --panel-hover: #353535;
+  --soft-fill: #353535;
+  --on-surface: #f3f3f3;
+  --on-surface-secondary: #d4d4d4;
+  --muted: #b1b1b1;
+  --line: rgb(255 255 255 / 0.08);
+  --outline-variant: rgb(255 255 255 / 0.16);
+  /* Calcite uses a lighter brand blue against dark surfaces */
+  --primary: #009af2;
+  --primary-container: rgb(0 154 242 / 0.16);
+  --color-primary-50: rgb(0 154 242 / 0.16);
+}
+
+[data-theme="dark"] .glass-panel {
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.04);
+}
+
+[data-theme="dark"] .glass-panel:hover {
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.06), 0 8px 24px rgb(0 0 0 / 0.4);
+}
+
+[data-theme="dark"] .insight-warn {
+  background: linear-gradient(180deg, rgb(237 211 23 / 0.08) 0%, var(--panel) 100%);
+}
+
+[data-theme="dark"] .insight-primary {
+  background: linear-gradient(180deg, rgb(0 154 242 / 0.06) 0%, var(--panel) 100%);
+}
+
+[data-theme="dark"] .insight-info {
+  background: linear-gradient(180deg, rgb(0 154 242 / 0.06) 0%, var(--panel) 100%);
+}
+
+/* ----- Base ------------------------------------------------------- */
+
+html,
+body {
+  background: var(--background);
+}
+
+body {
+  margin: 0;
+  color: var(--on-surface);
+  /* Inherit Calcite's font when it's loaded; fall back to our own
+     Avenir Next stack so the typeface is consistent before/after hydration. */
+  font-family: var(--calcite-sans-family, var(--font-sans));
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+.app-shell {
+  position: relative;
+  isolation: isolate;
+}
+
+.icon-svg {
+  width: 1em;
+  height: 1em;
+}
+
+/* ----- ArcGIS-signature 3-bar loader (keyframes only) ------------- */
+/* The <Loader> component (lib/shared.tsx) is inline-styled; it only    */
+/* depends on this keyframe, which CSS tooling never purges.            */
+
+@keyframes esri-bar {
+  0%, 100% { transform: scaleY(0.3); opacity: 0.5; }
+  50%      { transform: scaleY(1);   opacity: 1; }
+}
+
+/* ----- Sidebar rail (hover-expand) -------------------------------- */
+
+.sidebar-rail {
+  width: 64px;
+  background: var(--surface);
+  overflow: hidden;
+  transition: width var(--transition-base), box-shadow var(--transition-base);
+}
+
+.sidebar-rail:hover,
+.sidebar-rail:focus-within {
+  width: 220px;
+  box-shadow: 4px 0 24px rgb(15 23 42 / 0.06);
+}
+
+@media (min-width: 1536px) {
+  .sidebar-rail {
+    width: 72px;
+  }
+  .sidebar-rail:hover,
+  .sidebar-rail:focus-within {
+    width: 240px;
+  }
+}
+
+[data-theme="dark"] .sidebar-rail:hover,
+[data-theme="dark"] .sidebar-rail:focus-within {
+  box-shadow: 4px 0 24px rgb(0 0 0 / 0.6);
+}
+
+.sidebar-label {
+  display: inline-block;
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  transform: translateX(-4px);
+  transition: max-width var(--transition-base), opacity var(--transition-base), transform var(--transition-base);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.sidebar-rail:hover .sidebar-label,
+.sidebar-rail:focus-within .sidebar-label {
+  max-width: 160px;
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.nav-rail {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: 38px;
+  padding: 0 12px;
+  border: none;
+  background: transparent;
+  color: var(--on-surface-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.nav-rail:hover {
+  color: var(--primary);
+  background: var(--soft-fill);
+}
+
+.nav-rail-active {
+  color: var(--primary);
+  background: var(--primary-container);
+  font-weight: 600;
+}
+
+.nav-rail-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 3px;
+  height: 22px;
+  border-radius: 0 2px 2px 0;
+  background: var(--primary);
+}
+
+.nav-rail {
+  position: relative;
+}
+
+/* ----- TopBar (compact page header) ------------------------------- */
+
+/* The page-level header band: breadcrumb eyebrow, title, one-line sub.
+   Deliberately spare — no avatar, no global filter, no decorative icon.
+   Per-view controls (e.g. the dashboard date range) live inside the view's
+   own toolbar. Mirrors Calcite's typography scale: 10 / 13 / 22 px. */
+.topbar {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-block: 2px 4px;
+}
+
+.topbar-eyebrow {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  line-height: 1.2;
+}
+
+.topbar-title {
+  font-family: var(--calcite-sans-family, var(--font-sans));
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  color: var(--on-surface);
+}
+
+@media (min-width: 1536px) {
+  .topbar-title {
+    font-size: 22px;
+  }
+}
+
+.topbar-sub {
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+/* ----- Panels ----------------------------------------------------- */
+
+.glass-panel {
+  position: relative;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast),
+    box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+.glass-panel:hover {
+  border-color: var(--outline-variant);
+  box-shadow: var(--shadow-sm);
+}
+
+.donut-core {
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+
+/* ----- Buttons ---------------------------------------------------- */
+
+.control,
+.primary-control,
+.icon-btn {
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast),
+    color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+  cursor: pointer;
+}
+
+.control {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 32px;
+  padding: 0 var(--space-3);
+  background: var(--soft-fill);
+  border: 1px solid var(--line);
+  color: var(--on-surface);
+  font-size: var(--font-size-sm);
+}
+
+.control:hover,
+.control:focus-visible {
+  background: var(--surface-secondary);
+  border-color: var(--outline-variant);
+}
+
+.primary-control {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 32px;
+  padding: 0 var(--space-3);
+  background: var(--primary);
+  border: 1px solid var(--primary);
+  color: #ffffff;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.primary-control:hover,
+.primary-control:focus-visible {
+  background: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+  box-shadow: var(--shadow-sm);
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  height: 32px;
+  width: 32px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  border-radius: var(--radius-md);
+}
+
+.icon-btn:hover {
+  color: var(--on-surface);
+  background: var(--soft-fill);
+}
+
+.sidebar-signin {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--soft-fill);
+  border: 1px solid var(--line);
+  color: var(--on-surface);
+}
+
+.sidebar-signin:hover {
+  background: var(--primary-container);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.theme-toggle:hover {
+  color: var(--primary);
+}
+
+/* ----- Status pills ---------------------------------------------- */
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  background: var(--primary-container);
+  color: var(--primary);
+}
+
+.status-success {
+  background: rgb(53 172 70 / 0.12);
+  color: var(--success);
+}
+
+.status-warn {
+  background: rgb(237 211 23 / 0.18);
+  color: #9c8a06;
+}
+
+.status-error {
+  background: rgb(216 48 32 / 0.12);
+  color: var(--error);
+}
+
+/* ----- Typography ------------------------------------------------- */
+
+.label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.panel-title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--on-surface);
+}
+@media (min-width: 1536px) {
+  .panel-title {
+    font-size: 17px;
+  }
+}
+/* ----- Calcite component overrides -------------------------------- */
+
+calcite-loader {
+  --calcite-loader-color: var(--primary);
+}
+
+/* Dashboard cards — tighten Calcite's default chrome so KPI tiles stay
+   compact (the stock card has ~20-24px padding which bloats the grid).
+   The wrapper exposes a flex container so our internal layouts behave
+   exactly like they did in the old .glass-panel divs.
+   NOTE: do NOT set height:100% globally. In a CSS grid, align-items:stretch
+   (the default) already makes sibling cards equal-height. Forcing 100%
+   makes single cards in non-grid stacks (e.g. the record detail header)
+   balloon to fill whatever vertical space the parent flex/grid hands them. */
+calcite-card.dash-card {
+  display: block;
+  /* Calcite's own :host CSS sets block-size: 100% — that turns every
+     stacked card (record detail header, settings sidebar, etc.) into a
+     full-row giant. Force auto so each card sizes to its content unless
+     we explicitly opt back in via .hero-card. */
+  block-size: auto;
+  height: auto;
+  --calcite-card-background-color: var(--panel);
+  --calcite-card-border-color: var(--line);
+  --calcite-card-shadow: var(--shadow-xs);
+  --calcite-card-border-radius: var(--radius-md);
+}
+
+/* Hero tile is the one case that explicitly needs to fill its grid row
+   (1.1fr column next to the 2fr KPI grid; donut centers vertically
+   against the taller KPI grid). */
+calcite-card.dash-card.hero-card {
+  block-size: 100%;
+  height: 100%;
+}
+
+calcite-card.dash-card::part(container) {
+  background: var(--panel);
+  border-color: var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+calcite-card.dash-card:hover::part(container) {
+  border-color: var(--outline-variant);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Slotted content sits in the default slot — tighten its padding so the
+   dashboard reads dense, not chunky. */
+calcite-card.dash-card::part(content) {
+  padding: 14px 16px;
+}
+
+calcite-card.kpi-card::part(content) {
+  padding: 12px 14px;
+}
+
+calcite-card.section-card::part(content) {
+  padding: 16px;
+}
+
+calcite-card.zone-card {
+  overflow-x: auto;
+}
+
+calcite-card.activity-card::part(content) {
+  padding: 16px 16px 12px;
+}
+
+/* Used when the inner markup brings its own padding (header band + table). */
+calcite-card.dash-card.flush-card {
+  overflow: hidden;
+}
+calcite-card.dash-card.flush-card::part(content) {
+  padding: 0;
+}
+
+calcite-action-pad {
+  --calcite-color-foreground-1: var(--panel);
+  --calcite-color-foreground-2: var(--panel-hover);
+  --calcite-color-border-1: var(--line);
+  --calcite-color-text-1: var(--on-surface);
+}
+
+/* ArcGIS attribution placement — keep tidy */
+.esri-view-root {
+  background: var(--surface);
+}
+
+.esri-attribution {
+  font-size: 10px !important;
+}
+
+/* ----- Modals ----------------------------------------------------- */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(0 0 0 / 0.45);
+  backdrop-filter: blur(2px);
+  animation: pop-in 140ms ease both;
+}
+
+.modal-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 20px;
+  width: min(420px, 100%);
+}
+
+[data-theme="dark"] .modal-panel {
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.7);
+}
+
+/* ----- Popover ---------------------------------------------------- */
+
+.popover {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  animation: pop-in 140ms ease both;
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ----- Insight cards (dashboard alerts) -------------------------- */
+
+.insight-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.insight-card:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.insight-warn {
+  border-color: rgb(237 211 23 / 0.32);
+  background: linear-gradient(
+    180deg,
+    rgb(237 211 23 / 0.06) 0%,
+    var(--panel) 100%
+  );
+}
+
+.insight-primary {
+  border-color: rgb(0 122 194 / 0.18);
+  background: linear-gradient(
+    180deg,
+    rgb(0 122 194 / 0.04) 0%,
+    var(--panel) 100%
+  );
+}
+
+.insight-info {
+  border-color: rgb(0 97 155 / 0.2);
+  background: linear-gradient(
+    180deg,
+    rgb(0 97 155 / 0.04) 0%,
+    var(--panel) 100%
+  );
+}
+
+/* ----- Native select polish -------------------------------------- */
+
+select {
+  background: transparent;
+  border: none;
+  color: inherit;
+  outline: none;
+}
+
+select:focus {
+  outline: none;
+}
+
+select option {
+  background: var(--panel);
+  color: var(--on-surface);
+}
+
+/* ----- Auth screen ------------------------------------------------ */
+
+.auth-page {
+  background: var(--background);
+}
+
+.auth-brand {
+  position: relative;
+  background:
+    radial-gradient(circle at 22% 18%, rgb(255 255 255 / 0.16) 0, transparent 45%),
+    radial-gradient(circle at 88% 88%, rgb(0 154 242 / 0.32) 0, transparent 55%),
+    linear-gradient(135deg, #00355a 0%, #00619b 45%, #007ac2 100%);
+  color: #ffffff;
+}
+
+.auth-brand::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgb(255 255 255 / 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.05) 1px, transparent 1px);
+  background-size: 36px 36px;
+  pointer-events: none;
+  mask-image: radial-gradient(ellipse at 30% 50%, black 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse at 30% 50%, black 30%, transparent 75%);
+}
+
+.auth-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--on-surface-secondary);
+}
+
+.auth-input {
+  display: block;
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--on-surface);
+  font-size: 13px;
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.auth-input::placeholder {
+  color: var(--muted);
+}
+
+.auth-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 0.12);
+}
+
+.auth-input-shell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.auth-input-shell:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 0.12);
+}
+
+.auth-input-shell .auth-input--bare {
+  border: none;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: none;
+  box-shadow: none;
+  flex: 1;
+  min-width: 0;
+  padding-right: 0;
+}
+
+.auth-input-shell .auth-input--bare:focus {
+  border: none;
+  box-shadow: none;
+}
+
+.auth-input-shell .auth-input--bare::-ms-expand {
+  display: none;
+}
+
+.auth-input-shell .auth-input--bare::-webkit-calendar-picker-indicator {
+  display: none;
+}
+
+.auth-input-shell .auth-input--bare::-webkit-list-button {
+  display: none;
+}
+
+.auth-input-shell .icon-btn {
+  margin-right: 4px;
+}
+
+.auth-primary-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  height: 42px;
+  margin-top: 6px;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-md);
+  background: var(--primary);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.auth-primary-btn:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+  box-shadow: var(--shadow-md);
+}
+
+.auth-primary-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.auth-secondary-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--on-surface-secondary);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.auth-secondary-btn:hover {
+  background: var(--soft-fill);
+  border-color: var(--outline-variant);
+  color: var(--on-surface);
+}
+
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--soft-fill);
+  color: var(--on-surface);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.user-chip:hover {
+  background: var(--primary-container);
+  border-color: var(--primary);
+}
+
+.user-avatar {
+  display: grid;
+  place-items: center;
+  height: 24px;
+  width: 24px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  overflow: hidden;
+}
+
+.user-avatar img {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+
+.profile-avatar {
+  display: grid;
+  place-items: center;
+  height: 64px;
+  width: 64px;
+  flex-shrink: 0;
+  border-radius: 16px;
+  background: var(--primary);
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgb(37 99 235 / 0.25);
+}
+
+.profile-avatar img {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+
+/* ----- Animations ------------------------------------------------- */
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-up {
+  animation: fade-up 320ms ease both;
+}

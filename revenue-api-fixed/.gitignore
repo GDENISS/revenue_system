@@ -1,0 +1,20 @@
+# dependencies
+node_modules/
+
+# environment — never commit secrets
+.env
+.env.*
+!.env.example
+
+# generated PDFs
+generated/
+
+# logs
+*.log
+
+# Claude Code
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db

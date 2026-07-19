@@ -1,0 +1,28 @@
+# environment — never commit secrets (any level)
+.env
+**/.env
+**/.env.*
+!**/.env.example
+!.env.example
+
+# dependencies
+**/node_modules/
+
+# builds
+**/.next/
+**/out/
+*.tsbuildinfo
+
+# generated artifacts (PDF notices)
+revenue-api-fixed/generated/
+
+# Claude Code
+.claude/
+**/.claude/
+
+# logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

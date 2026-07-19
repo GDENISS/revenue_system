@@ -1,0 +1,9 @@
+node_modules
+generated
+.env
+.env.*
+!.env.example
+.git
+.claude
+*.md
+debug-arcgis.mjs

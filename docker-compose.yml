@@ -1,0 +1,77 @@
+name: revenue-system
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-revenue}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-revenue_db}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-revenue} -d ${POSTGRES_DB:-revenue_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./revenue-api-fixed
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 8080
+      DATABASE_URL: postgres://${POSTGRES_USER:-revenue}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-revenue_db}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+      ARCGIS_BASE_URL: ${ARCGIS_BASE_URL:-https://www.arcgis.com}
+      ARCGIS_CLIENT_ID: ${ARCGIS_CLIENT_ID:-}
+      ARCGIS_CLIENT_SECRET: ${ARCGIS_CLIENT_SECRET:-}
+      ARCGIS_PARCEL_LAYER_ID: ${ARCGIS_PARCEL_LAYER_ID:-}
+      ARCGIS_BUSINESS_LAYER_ID: ${ARCGIS_BUSINESS_LAYER_ID:-}
+      ARCGIS_MARKET_STALL_LAYER_ID: ${ARCGIS_MARKET_STALL_LAYER_ID:-}
+      ARCGIS_SYNC_INTERVAL_MINUTES: ${ARCGIS_SYNC_INTERVAL_MINUTES:-15}
+      ARCGIS_ADMIN_USERNAMES: ${ARCGIS_ADMIN_USERNAMES:-}
+      COUNTY_NAME: ${COUNTY_NAME:-NAIROBI CITY COUNTY}
+      COUNTY_LOGO_URL: ${COUNTY_LOGO_URL:-}
+      PAYSTACK_SECRET_KEY: ${PAYSTACK_SECRET_KEY:-}
+      PAYSTACK_PUBLIC_KEY: ${PAYSTACK_PUBLIC_KEY:-}
+      PAYSTACK_CALLBACK_URL: ${WEB_PUBLIC_URL:-http://localhost:3000}/?view=bulk&paystack_callback=1
+      PAYSTACK_NOREPLY_DOMAIN: ${PAYSTACK_NOREPLY_DOMAIN:-revenue.local}
+    volumes:
+      - notices:/app/generated
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  web:
+    build:
+      context: ./georevenue-spatial-os
+      args:
+        # Baked into the browser bundle at build time — must be the URL your
+        # colleagues' browsers can reach, e.g. http://<VPS_IP>:8080
+        NEXT_PUBLIC_API_URL: ${API_PUBLIC_URL:?set API_PUBLIC_URL in .env}
+        NEXT_PUBLIC_ARCGIS_PORTAL_URL: ${ARCGIS_BASE_URL:-https://www.arcgis.com}
+        NEXT_PUBLIC_ARCGIS_APP_ID: ${ARCGIS_APP_ID:-}
+        NEXT_PUBLIC_ARCGIS_API_KEY: ${ARCGIS_API_KEY:-}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:
+  notices:
