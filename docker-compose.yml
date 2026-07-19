@@ -47,7 +47,8 @@ services:
     volumes:
       - notices:/app/generated
     ports:
-      - "8080:8080"
+      # Host port is configurable — 8080 is often taken by other stacks.
+      - "${API_PORT:-8081}:8080"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health >/dev/null 2>&1 || exit 1"]
       interval: 15s
@@ -70,7 +71,7 @@ services:
       api:
         condition: service_healthy
     ports:
-      - "3000:3000"
+      - "${WEB_PORT:-3000}:3000"
 
 volumes:
   pgdata:

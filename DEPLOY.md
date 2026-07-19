@@ -13,8 +13,8 @@ sudo usermod -aG docker $USER   # log out and back in afterwards
 
 # Open the two app ports (Postgres is NOT exposed publicly)
 sudo ufw allow 22/tcp
-sudo ufw allow 3000/tcp   # frontend
-sudo ufw allow 8080/tcp   # API
+sudo ufw allow 3000/tcp   # frontend (WEB_PORT)
+sudo ufw allow 8081/tcp   # API (API_PORT)
 sudo ufw enable
 ```
 
@@ -38,9 +38,10 @@ Required edits:
 |---|---|
 | `POSTGRES_PASSWORD` | any strong password (internal only) |
 | `JWT_SECRET` | output of `openssl rand -hex 48` |
-| `API_PUBLIC_URL` | `http://<VPS_IP>:8080` |
-| `WEB_PUBLIC_URL` | `http://<VPS_IP>:3000` |
-| `ALLOWED_ORIGINS` | `http://<VPS_IP>:3000` |
+| `API_PORT` / `WEB_PORT` | host ports that are FREE on the VPS (check `docker ps`) |
+| `API_PUBLIC_URL` | `http://<VPS_IP>:<API_PORT>` |
+| `WEB_PUBLIC_URL` | `http://<VPS_IP>:<WEB_PORT>` |
+| `ALLOWED_ORIGINS` | same value as `WEB_PUBLIC_URL` |
 
 ArcGIS and Paystack keys are optional — the system starts and serves the
 seeded Nairobi demo data without them; fill them in when you want to test
@@ -59,12 +60,12 @@ First build takes a few minutes. Then verify:
 
 ```bash
 docker compose ps                          # all three services healthy/running
-curl http://localhost:8080/health          # {"status":"ok",...}
+curl http://localhost:8081/health          # {"status":"ok",...}
 ```
 
 Share with colleagues:
 - **App:** `http://<VPS_IP>:3000`
-- **API docs (Swagger):** `http://<VPS_IP>:8080/docs`
+- **API docs (Swagger):** `http://<VPS_IP>:8081/docs`
 
 Demo logins are seeded by `migrations/003_nairobi_dummy_data.sql`.
 
