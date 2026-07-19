@@ -120,7 +120,7 @@ lang_zone AS (
 ),
 kasa_zone AS (
   SELECT zone_id FROM zone WHERE zone_code = 'NBO-KASA'
-},
+),
 emba_zone AS (
   SELECT zone_id FROM zone WHERE zone_code = 'NBO-EMBA'
 )
