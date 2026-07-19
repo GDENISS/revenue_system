@@ -2,8 +2,9 @@
 -- Full schema for Local Government Revenue Management System
 -- Run via: pnpm migrate
 
--- Enable PostGIS (requires PostGIS extension installed on server)
-CREATE EXTENSION IF NOT EXISTS postgis;
+-- No PostGIS: all geometry is owned by ArcGIS feature layers (see
+-- 003_drop_spatial.sql). Records keep plain lat/lng columns only, so the
+-- stock postgres image works.
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- ── Zones / Hierarchy ──────────────────────────────────────────────────────
@@ -60,9 +61,8 @@ CREATE TABLE IF NOT EXISTS taxpayer_record (
   taxpayer_id_no   VARCHAR(50),  -- national ID or business reg number
   zone_id          INT NOT NULL REFERENCES zone(zone_id),
   status_id        INT NOT NULL REFERENCES status(status_id) DEFAULT 1,
-  -- Spatial
-  geom             GEOMETRY(Geometry, 4326),  -- point or polygon
-  latitude         NUMERIC(10,7),  -- denormalized for fast non-PostGIS lookups
+  -- Spatial (geometry lives in ArcGIS; only coordinates are mirrored here)
+  latitude         NUMERIC(10,7),
   longitude        NUMERIC(10,7),
   -- ArcGIS sync
   arcgis_object_id BIGINT UNIQUE,
@@ -77,7 +77,6 @@ CREATE TABLE IF NOT EXISTS taxpayer_record (
 CREATE INDEX IF NOT EXISTS idx_taxpayer_zone ON taxpayer_record(zone_id);
 CREATE INDEX IF NOT EXISTS idx_taxpayer_status ON taxpayer_record(status_id);
 CREATE INDEX IF NOT EXISTS idx_taxpayer_arcgis ON taxpayer_record(arcgis_object_id);
-CREATE INDEX IF NOT EXISTS idx_taxpayer_geom ON taxpayer_record USING GIST(geom);
 
 -- ── Flexible Attributes ────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS record_attributes (

@@ -214,9 +214,12 @@ WITH status_active AS (SELECT status_id FROM status WHERE status_name = 'active'
      kasarani AS (SELECT zone_id FROM zone WHERE zone_code = 'NBO-KASA'),
      embakasi AS (SELECT zone_id FROM zone WHERE zone_code = 'NBO-EMBA')
 
-INSERT INTO taxpayer_record (record_type_id, taxpayer_name, taxpayer_phone, taxpayer_email, taxpayer_id_no, zone_id, status_id, latitude, longitude, submitted_by)
-SELECT 
-  v.record_type_id, v.name, v.phone, v.email, v.id_no, v.zone_id, v.status_id, v.lat, v.lon, v.user_id
+-- NOTE: lat/lon stay in the VALUES tuples for reference but are NOT inserted —
+-- 003_drop_spatial.sql (which sorts before this file) removed those columns;
+-- geometry is owned by the linked ArcGIS features.
+INSERT INTO taxpayer_record (record_type_id, taxpayer_name, taxpayer_phone, taxpayer_email, taxpayer_id_no, zone_id, status_id, submitted_by)
+SELECT
+  v.record_type_id, v.name, v.phone, v.email, v.id_no, v.zone_id, v.status_id, v.user_id
 FROM (VALUES
   -- Westlands Residential (10 records)
   ((SELECT record_type_id FROM rt_residential), 'Ahmed Hassan Ibrahim', '0722100001', 'ahmed.hassan@email.com', 'ID001', (SELECT zone_id FROM westlands), (SELECT status_id FROM status_active), -1.2921, 36.8219, (SELECT user_id FROM user_peter)),
